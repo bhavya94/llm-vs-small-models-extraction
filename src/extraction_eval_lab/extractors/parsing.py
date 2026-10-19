@@ -1,5 +1,6 @@
-"""Turning a surface string into a schema value. Shared by every extractor that finds text spans first."""
+"""Turning text into schema values: a span's surface string, or the JSON object in a model's reply."""
 
+import json
 import re
 from datetime import datetime
 
@@ -39,3 +40,15 @@ def parse_field(name: str, surface: str):
     if name in ("guest_count", "cancellation_days"):
         return parse_int(surface)
     return surface.strip() or None
+
+
+def parse_reply(reply: str) -> dict | None:
+    """The first JSON object in the reply, or None when there is none or it does not parse."""
+    match = re.search(r"\{.*\}", reply, re.DOTALL)
+    if not match:
+        return None
+    try:
+        parsed = json.loads(match.group(0))
+    except json.JSONDecodeError:
+        return None
+    return parsed if isinstance(parsed, dict) else None
