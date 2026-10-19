@@ -1,0 +1,23 @@
+{
+ "model": "claude-haiku-4-5-20251001",
+ "rows": [
+  {
+   "predictions": "tagger, unseen layouts",
+   "pairs": 1300,
+   "right": 0.5169230769230769,
+   "tpr": 0.9985119047619048,
+   "tnr": 0.9856687898089171,
+   "kappa": 0.9845913142423668,
+   "unparsed": 0
+  },
+  {
+   "predictions": "rules, adversarial",
+   "pairs": 2600,
+   "right": 0.8834615384615384,
+   "tpr": 0.9943404440574662,
+   "tnr": 0.9504950495049505,
+   "kappa": 0.947550205548439,
+   "unparsed": 0
+  }
+ ]
+}

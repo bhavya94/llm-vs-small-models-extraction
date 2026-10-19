@@ -1,0 +1,86 @@
+{
+ "base": {
+  "seen": {
+   "f1": {
+    "booker_name": 0.019801980198019802,
+    "booker_email": 0.0,
+    "venue_name": 0.3464566929133858,
+    "venue_city": 0.3870967741935484,
+    "event_date": 0.1889763779527559,
+    "guest_count": 0.4126984126984127,
+    "currency": 0.4094488188976378,
+    "deposit_amount": 0.15748031496062992,
+    "deposit_due": 0.0,
+    "balance_amount": 0.11023622047244094,
+    "balance_due": 0.0,
+    "caterer_name": 0.0,
+    "cancellation_days": 0.13559322033898305
+   },
+   "exact_match": 0.0,
+   "valid": 0.0,
+   "seconds_per_doc": 5.4532390274992215
+  },
+  "unseen": {
+   "f1": {
+    "booker_name": 0.0,
+    "booker_email": 0.0,
+    "venue_name": 0.0,
+    "venue_city": 0.019801980198019802,
+    "event_date": 0.0,
+    "guest_count": 0.019801980198019802,
+    "currency": 0.019801980198019802,
+    "deposit_amount": 0.0,
+    "deposit_due": 0.0,
+    "balance_amount": 0.0,
+    "balance_due": 0.0,
+    "caterer_name": 0.0,
+    "cancellation_days": 0.0
+   },
+   "exact_match": 0.0,
+   "valid": 0.0,
+   "seconds_per_doc": 5.4266437729191965
+  }
+ },
+ "tuned": {
+  "seen": {
+   "f1": {
+    "booker_name": 1.0,
+    "booker_email": 1.0,
+    "venue_name": 1.0,
+    "venue_city": 1.0,
+    "event_date": 0.99,
+    "guest_count": 1.0,
+    "currency": 1.0,
+    "deposit_amount": 0.99,
+    "deposit_due": 0.96,
+    "balance_amount": 1.0,
+    "balance_due": 0.98,
+    "caterer_name": 1.0,
+    "cancellation_days": 1.0
+   },
+   "exact_match": 0.94,
+   "valid": 0.98,
+   "seconds_per_doc": 4.517330991250929
+  },
+  "unseen": {
+   "f1": {
+    "booker_name": 0.8102564102564103,
+    "booker_email": 0.717948717948718,
+    "venue_name": 0.882051282051282,
+    "venue_city": 0.9743589743589743,
+    "event_date": 0.15384615384615385,
+    "guest_count": 0.7282051282051282,
+    "currency": 0.9743589743589743,
+    "deposit_amount": 0.4307692307692308,
+    "deposit_due": 0.5230769230769231,
+    "balance_amount": 0.5025641025641026,
+    "balance_due": 0.041025641025641026,
+    "caterer_name": 0.8235294117647058,
+    "cancellation_days": 0.9574468085106383
+   },
+   "exact_match": 0.0,
+   "valid": 0.75,
+   "seconds_per_doc": 4.430950305000879
+  }
+ }
+}

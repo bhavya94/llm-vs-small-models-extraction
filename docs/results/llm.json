@@ -1,0 +1,48 @@
+{
+ "model": "claude-haiku-4-5-20251001",
+ "groups": {
+  "seen": {
+   "f1": {
+    "booker_name": 1.0,
+    "booker_email": 1.0,
+    "venue_name": 1.0,
+    "venue_city": 1.0,
+    "event_date": 1.0,
+    "guest_count": 1.0,
+    "currency": 1.0,
+    "deposit_amount": 1.0,
+    "deposit_due": 1.0,
+    "balance_amount": 1.0,
+    "balance_due": 1.0,
+    "caterer_name": 1.0,
+    "cancellation_days": 1.0
+   },
+   "exact_match": 1.0,
+   "valid": 1.0,
+   "seconds_per_doc": 0.0002328133280389011
+  },
+  "unseen": {
+   "f1": {
+    "booker_name": 1.0,
+    "booker_email": 1.0,
+    "venue_name": 1.0,
+    "venue_city": 1.0,
+    "event_date": 1.0,
+    "guest_count": 1.0,
+    "currency": 1.0,
+    "deposit_amount": 1.0,
+    "deposit_due": 1.0,
+    "balance_amount": 1.0,
+    "balance_due": 1.0,
+    "caterer_name": 1.0,
+    "cancellation_days": 1.0
+   },
+   "exact_match": 1.0,
+   "valid": 1.0,
+   "seconds_per_doc": 0.00021385957952588797
+  }
+ },
+ "dollars_per_doc": 0.001611715,
+ "median_call_seconds": null,
+ "repaired": 0
+}
