@@ -10,6 +10,9 @@ dependencies = [
     "metrics-from-scratch @ git+https://github.com/bhavya94/metrics-from-scratch",
     "pydantic>=2",
     "email-validator>=2",
+    "torch>=2.14.1",
+    "transformers>=5.20.1",
+    "accelerate>=1.1.0",
 ]
 
 [project.scripts]
