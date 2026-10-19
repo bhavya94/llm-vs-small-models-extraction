@@ -3,9 +3,10 @@
 import argparse
 import os
 
+from extraction_eval_lab.data.adversarial import CATEGORIES, AdversarialRecipe
 from extraction_eval_lab.data.generator import BookingRecipe
 from extraction_eval_lab.data.schema import FIELDS
-from extraction_eval_lab.evaluation.scorer import FieldReport
+from extraction_eval_lab.evaluation.scorer import FieldReport, field_correct
 from extraction_eval_lab.extractors.llm import LLMExtractor, Meter, estimate
 from extraction_eval_lab.extractors.rules import extract
 from extraction_eval_lab.extractors.sft import SFTExtractor, SFTTraining
@@ -96,6 +97,37 @@ def _llm(args: argparse.Namespace) -> None:
         print(f"  {label:<18} {getattr(reports['seen'], attr):>6.3f} {getattr(reports['unseen'], attr):>7.3f}")
 
 
+def _adversarial(args: argparse.Namespace) -> None:
+    sets = AdversarialRecipe(n=args.n).sample()
+    train = BookingRecipe(n=600, seed=1, layouts="seen").sample()
+    extractors = {"rules": extract, "tagger": Tagger(TaggerTraining().run(train)).extract,
+                  "SFT": SFTExtractor(adapter=SFTTraining().run(train)).extract}
+    if args.llm:
+        if not os.environ.get("ANTHROPIC_API_KEY"):
+            raise SystemExit("set ANTHROPIC_API_KEY for --llm")
+        import anthropic
+
+        meter = Meter(input_price=args.input_price, output_price=args.output_price, cap=args.cap)
+        texts = [d.text for docs in sets.values() for d in docs]
+        print(f"{args.model} on {len(texts)} documents: estimated at most ${estimate(texts, meter, 400):.2f} before "
+              f"caching; cap ${args.cap:.2f}")
+        extractors["LLM"] = LLMExtractor(client=anthropic.Anthropic(), model=args.model, meter=meter).extract
+    print(f"{args.n} adversarial documents per category, built from seen layouts; "
+          "targeted field right / whole document right")
+    print(f"  {'category':<17} " + " ".join(f"{name:>13}" for name in extractors))
+    for category, docs in sets.items():
+        target = CATEGORIES[category][0]
+        cells = []
+        for run in extractors.values():
+            correct = [field_correct(run(d.text), d.gold) for d in docs]
+            field = sum(c[target] for c in correct) / len(docs)
+            whole = sum(all(c.values()) for c in correct) / len(docs)
+            cells.append(f"{field:>5.2f} / {whole:.2f}")
+        print(f"  {category:<17} " + " ".join(f"{cell:>13}" for cell in cells))
+    if args.llm:
+        print(f"LLM spend: ${meter.spent:.2f} (cached replies are free)")
+
+
 def main(argv: list[str] | None = None) -> None:
     parser = argparse.ArgumentParser(prog="eel", description=__doc__)
     commands = parser.add_subparsers(dest="command", required=True)
@@ -132,5 +164,14 @@ def main(argv: list[str] | None = None) -> None:
     llm.add_argument("--output-price", type=float, default=5.0, help="dollars per million output tokens")
     llm.add_argument("--dry-run", action="store_true", help="print the cost estimate and stop")
     llm.set_defaults(run=_llm)
+
+    adversarial = commands.add_parser("adversarial", help="every extractor on five kinds of adversarial documents")
+    adversarial.add_argument("--n", type=int, default=40, help="documents per category")
+    adversarial.add_argument("--llm", action="store_true", help="include the LLM (paid, capped, cached)")
+    adversarial.add_argument("--model", default="claude-haiku-4-5-20251001")
+    adversarial.add_argument("--cap", type=float, default=2.0)
+    adversarial.add_argument("--input-price", type=float, default=1.0)
+    adversarial.add_argument("--output-price", type=float, default=5.0)
+    adversarial.set_defaults(run=_adversarial)
     args = parser.parse_args(argv)
     args.run(args)
