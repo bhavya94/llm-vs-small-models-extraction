@@ -1,0 +1,42 @@
+{
+ "seen": {
+  "f1": {
+   "booker_name": 1.0,
+   "booker_email": 1.0,
+   "venue_name": 1.0,
+   "venue_city": 1.0,
+   "event_date": 1.0,
+   "guest_count": 1.0,
+   "currency": 1.0,
+   "deposit_amount": 1.0,
+   "deposit_due": 1.0,
+   "balance_amount": 1.0,
+   "balance_due": 1.0,
+   "caterer_name": 1.0,
+   "cancellation_days": 1.0
+  },
+  "exact_match": 1.0,
+  "valid": 1.0,
+  "seconds_per_doc": 0.01884018083103001
+ },
+ "unseen": {
+  "f1": {
+   "booker_name": 0.9381443298969072,
+   "booker_email": 0.56,
+   "venue_name": 0.8542713567839196,
+   "venue_city": 0.94,
+   "event_date": 0.0,
+   "guest_count": 0.7393939393939394,
+   "currency": 1.0,
+   "deposit_amount": 0.0,
+   "deposit_due": 0.14473684210526316,
+   "balance_amount": 0.0,
+   "balance_due": 0.0,
+   "caterer_name": 1.0,
+   "cancellation_days": 0.717948717948718
+  },
+  "exact_match": 0.0,
+  "valid": 0.0,
+  "seconds_per_doc": 0.015286839171312749
+ }
+}

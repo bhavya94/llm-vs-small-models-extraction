@@ -6,6 +6,7 @@ that could take spend past the budget. The client is passed in, so tests use a f
 
 import hashlib
 import json
+import time
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
@@ -48,19 +49,35 @@ class CachedLLM:
     cache: Path = Path(".cache") / "llm"
     max_tokens: int = 400
     calls: int = field(default=0, init=False)  # API calls actually made, cache hits excluded
+    # Tokens and seconds of every reply, cache hits included, so cost and latency per document survive a cached
+    # rerun. Seconds are None for replies cached before latency was recorded.
+    replies: list[dict] = field(default_factory=list, init=False)
 
     def ask(self, system: str, messages: list[dict]) -> str:
         request = {"model": self.model, "system": system, "messages": messages, "max_tokens": self.max_tokens}
         key = hashlib.sha256(json.dumps(request, sort_keys=True).encode()).hexdigest()
         path = self.cache / f"{key}.json"
         if path.exists():
-            return json.loads(path.read_text())["text"]
+            cached = json.loads(path.read_text())
+            self._log(*cached["usage"], cached.get("seconds"))
+            return cached["text"]
         self.meter.check(self.max_tokens, input_tokens_estimate=len(json.dumps(request)) // 3)
+        start = time.perf_counter()
         response = self.client.messages.create(**request)
+        seconds = time.perf_counter() - start
         self.calls += 1
         self.meter.add(response.usage.input_tokens, response.usage.output_tokens)
         text = "".join(block.text for block in response.content if getattr(block, "type", "") == "text")
         path.parent.mkdir(parents=True, exist_ok=True)
-        path.write_text(json.dumps({"text": text, "usage": [response.usage.input_tokens,
-                                                            response.usage.output_tokens]}))
+        usage = [response.usage.input_tokens, response.usage.output_tokens]
+        path.write_text(json.dumps({"text": text, "usage": usage, "seconds": seconds}))
+        self._log(*usage, seconds)
         return text
+
+    def _log(self, input_tokens: int, output_tokens: int, seconds: float | None) -> None:
+        self.replies.append({"input_tokens": input_tokens, "output_tokens": output_tokens, "seconds": seconds})
+
+    def dollars_uncached(self) -> float:
+        """What every reply so far would cost with an empty cache."""
+        return sum(r["input_tokens"] * self.meter.input_price + r["output_tokens"] * self.meter.output_price
+                   for r in self.replies) / 1e6

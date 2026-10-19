@@ -70,3 +70,13 @@ def test_estimate_scales_with_documents_and_repairs():
     one = estimate([DOC.text], meter, max_tokens=400, repair_share=0)
     assert estimate([DOC.text] * 10, meter, max_tokens=400, repair_share=0) == pytest.approx(10 * one)
     assert estimate([DOC.text], meter, max_tokens=400, repair_share=0.5) == pytest.approx(1.5 * one)
+
+
+def test_cost_and_latency_survive_a_cached_rerun(tmp_path):
+    first = _extractor(FakeClient(GOOD), tmp_path)
+    first.extract(DOC.text)
+    second = _extractor(FakeClient(), tmp_path)
+    second.extract(DOC.text)
+    assert second.llm.meter.spent == 0
+    assert second.llm.dollars_uncached() == pytest.approx(first.llm.meter.spent)
+    assert second.llm.replies[0]["seconds"] == first.llm.replies[0]["seconds"] is not None

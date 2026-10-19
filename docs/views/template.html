@@ -1,5 +1,5 @@
 <meta charset="utf-8">
-<title>Extraction Eval Lab</title>
+<title>LLM vs Small Models</title>
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -77,59 +77,217 @@ input[type=range]:focus-visible { outline: 2px solid var(--accent); outline-offs
 .stat .v { font: 600 18px var(--mono); }
 .stat .v small { font-weight: 400; color: var(--muted); font-size: 13px; }
 @media (max-width: 480px) { section { padding: 16px; } .matrix td { width: 76px; } }
+
+pre { margin: 0; font: 12.5px/1.5 var(--mono); background: var(--bg); border: 1px solid var(--grid); border-radius: 4px; padding: 12px; overflow-x: auto; white-space: pre-wrap; }
+.grid { width: 100%; font-size: 13px; }
+.grid th, .grid td { padding: 5px 8px; text-align: center; border-bottom: 1px solid var(--grid); }
+.grid th:first-child, .grid td:first-child { text-align: left; }
+.grid th { font-weight: 600; color: var(--muted); font-size: 12px; }
+.grid td.cell { font-family: var(--mono); }
+.toggle { display: flex; gap: 8px; flex-wrap: wrap; }
+.toggle button { font: 600 13px var(--body); padding: 6px 12px; border: 1px solid var(--rule); border-radius: 4px; background: var(--surface); color: var(--fg); cursor: pointer; }
+.toggle button[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: var(--surface); }
+.toggle button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+ul { margin: 0; padding-left: 20px; max-width: 68ch; } li + li { margin-top: 4px; }
 </style>
 
 <main>
   <header>
-    <div class="eyebrow">extraction-eval-lab</div>
-    <h1>Extraction Eval Lab</h1>
-    <p class="lede">Structured extraction from fictional documents into a strict JSON schema: an LLM, a token tagger and a small fine-tuned model, scored per field.</p>
+    <div class="eyebrow">llm-vs-small-models-extraction</div>
+    <h1>Can a small model replace an LLM for structured extraction?</h1>
+    <p class="lede">Four extractors read the same fictional booking documents and fill the same 13-field JSON schema. Each one is scored field by field, on layouts it trained on, on layouts it never saw, and on documents written to trick it.</p>
   </header>
+
+  <section>
+    <div class="eyebrow">the task</div>
+    <h2>Turn a document into strict JSON</h2>
+    <p>Every document is generated from a seed, so its correct JSON (the gold) is known exactly. Three layouts (email, invoice, note) are for training. Two more (chat, letter) are held out: they reword every label and put the balance before the deposit. A model that memorized where values sit fails on them.</p>
+    <div class="toggle" role="group" aria-label="Example layout">
+      <button type="button" data-ex="seen" aria-pressed="true">Seen layout</button>
+      <button type="button" data-ex="unseen" aria-pressed="false">Unseen layout</button>
+    </div>
+    <div class="row">
+      <div><div class="panel-title">Document</div><pre id="ex-text"></pre></div>
+      <div><div class="panel-title">Gold JSON</div><pre id="ex-gold"></pre></div>
+    </div>
+    <div class="cmd">uv run eel sample --layouts unseen</div>
+  </section>
+
+  <section>
+    <div class="eyebrow">the method</div>
+    <h2>Four extractors, from free to paid</h2>
+    <div class="scroll"><table class="legend">
+      <thead><tr><th>Extractor</th><th>What it is</th><th>Trained on</th></tr></thead>
+      <tbody>
+        <tr><td><span class="key">Rules</span></td><td style="text-align:left">Regular expressions written for the seen layouts' labels</td><td>nothing</td></tr>
+        <tr><td><span class="key">Tagger</span></td><td style="text-align:left">distilbert-base-cased labels each token as the start, inside or outside of a field (BIO)</td><td>600 seen-layout documents</td></tr>
+        <tr><td><span class="key">SFT</span></td><td style="text-align:left">SmolLM2-135M-Instruct with LoRA adapters, taught to write the JSON</td><td>600 seen-layout documents</td></tr>
+        <tr><td><span class="key">LLM</span></td><td style="text-align:left">Claude Haiku 4.5 with the schema in the prompt, validation, and one repair round</td><td>nothing (prompt only)</td></tr>
+      </tbody>
+    </table></div>
+  </section>
+
+  <section>
+    <div class="eyebrow">the scores</div>
+    <h2>How a prediction is scored</h2>
+    <ul>
+      <li><b>Field F1:</b> per field, over 100 documents. A stated wrong value counts against precision and recall both.</li>
+      <li><b>Exact match:</b> the share of documents with all 13 fields right. One wrong date makes the whole document wrong.</li>
+      <li><b>Valid JSON:</b> the share of outputs that pass the strict schema (right keys, types and formats).</li>
+    </ul>
+  </section>
+
+  <section>
+    <div class="eyebrow">result 1</div>
+    <h2>Every extractor learns the seen layouts; only the LLM survives new ones</h2>
+    <p id="em-claim"></p>
+    <div class="scroll"><table class="grid" id="em-table"></table></div>
+    <div class="cmd">uv run eel rules · uv run eel tagger · uv run eel sft · uv run eel llm</div>
+  </section>
+
+  <section>
+    <div class="eyebrow">result 2</div>
+    <h2>What transfers to unseen layouts, field by field</h2>
+    <p>Names and cities partly transfer for the trained models: the words themselves look similar in any layout. Dates and amounts do not, because the trained models learned their position and their label text, and the unseen layouts change both.</p>
+    <div class="toggle" role="group" aria-label="Layout group">
+      <button type="button" data-f1="seen" aria-pressed="false">Seen layouts</button>
+      <button type="button" data-f1="unseen" aria-pressed="true">Unseen layouts</button>
+    </div>
+    <div class="scroll"><table class="grid" id="f1-table"></table></div>
+  </section>
+
+  <section>
+    <div class="eyebrow">result 3</div>
+    <h2>Adversarial documents: seen layouts with one targeted change</h2>
+    <p>Each category edits one field of a seen-layout document. A cell shows the targeted field's accuracy, then the share of documents with every field right.</p>
+    <div class="scroll"><table class="grid" id="adv-table"></table></div>
+    <div class="cmd">uv run eel adversarial --llm</div>
+  </section>
+
+  <section>
+    <div class="eyebrow">result 4</div>
+    <h2>Cost, speed and accuracy in one table</h2>
+    <p>Local models cost nothing per call, but they cost training time and they need labeled data. Seconds are wall-clock per document on an M1 laptop: the tagger runs on its GPU and the SFT model on its CPU. The LLM's seconds are the median API round trip over the adversarial run's live calls.</p>
+    <div class="scroll"><table class="grid" id="cost-table"></table></div>
+  </section>
+
+  <section>
+    <div class="eyebrow">result 5</div>
+    <h2>Can an LLM judge stand in for the gold?</h2>
+    <p>Real documents have no gold JSON. A rubric judge sees only the document and the prediction, and says true or false per field. Here the exact scorer knows the truth, so the judge itself can be scored.</p>
+    <ul>
+      <li><b>TPR:</b> of the fields that are right, the share the judge accepts.</li>
+      <li><b>TNR:</b> of the fields that are wrong, the share the judge catches.</li>
+      <li><b>Cohen's kappa:</b> agreement beyond chance; 1 is perfect, 0 is no better than chance.</li>
+    </ul>
+    <div class="scroll"><table class="grid" id="judge-table"></table></div>
+    <div class="cmd">uv run eel judge</div>
+  </section>
+
+  <section>
+    <div class="eyebrow">limits</div>
+    <h2>What this does not show</h2>
+    <ul>
+      <li>The documents are synthetic and clean. Real documents add OCR noise, tables and many more layouts.</li>
+      <li>Each trained model is one run with one seed. Small differences between them are not significant.</li>
+      <li>The judge model and the extractor model are the same family. A different judge model could disagree differently.</li>
+      <li>The adversarial set is too easy for the LLM: it scores 100%, so the set cannot rank stronger models.</li>
+      <li>The judge is stricter than the scorer. The rubric asks for values exactly as stated; the scorer ignores case and accepts <code>1700</code> for <code>1700.00</code>.</li>
+    </ul>
+  </section>
 </main>
 
 <script>
 const DATA = /*VIEW_DATA*/null;
-const NS = "http://www.w3.org/2000/svg";
-const pct = v => (v * 100).toFixed(v < 0.1 && v > 0 ? 1 : 0) + "%";
-const f2 = v => v.toFixed(2), f3 = v => v.toFixed(3), f4 = v => v.toFixed(4);
+const FIELDS = ["booker_name", "booker_email", "venue_name", "venue_city", "event_date", "guest_count", "currency",
+                "deposit_amount", "deposit_due", "balance_amount", "balance_due", "caterer_name", "cancellation_days"];
+const NAMES = ["Rules", "Tagger", "SFT", "LLM"];
+const ADV_KEY = { Rules: "rules", Tagger: "tagger", SFT: "SFT", LLM: "LLM" };  // the adversarial command's column names
+const pct = v => Math.round(v * 100) + "%";
+const f3 = v => v.toFixed(3);
 
-function el(tag, attrs = {}, parent) {
-  const node = document.createElementNS(NS, tag);
-  for (const [k, v] of Object.entries(attrs)) node.setAttribute(k, v);
-  if (parent) parent.appendChild(node);
-  return node;
+// Cell tint by score: transparent at 0, the accent color at 1, so strong and weak cells read at a glance.
+const tint = v => `background: color-mix(in srgb, var(--accent) ${Math.round(v * 45)}%, transparent)`;
+const cell = (v, fmt = f3) => `<td class="cell" style="${tint(v)}">${fmt(v)}</td>`;
+
+function groups() {
+  return { Rules: DATA.rules, Tagger: DATA.tagger, SFT: DATA.sft.tuned, LLM: DATA.llm.groups };
 }
 
-// A chart frame: linear scales, gridlines, ticks and axis labels. Marks go in `plot` through x() and y().
-function frame(host, { w = 440, h = 260, x, y, xlabel, ylabel }) {
-  const m = { l: 48, r: 14, t: 10, b: xlabel ? 42 : 26 };
-  const svg = el("svg", { viewBox: `0 0 ${w} ${h}`, role: "img" });
-  const X = v => m.l + (v - x.min) / (x.max - x.min) * (w - m.l - m.r);
-  const Y = v => h - m.b - (v - y.min) / (y.max - y.min) * (h - m.t - m.b);
-  for (const t of y.ticks) {
-    el("line", { x1: m.l, x2: w - m.r, y1: Y(t), y2: Y(t), class: "gridline" }, svg);
-    el("text", { x: m.l - 6, y: Y(t) + 4, "text-anchor": "end" }, svg).textContent = (y.fmt || String)(t);
-  }
-  for (const t of x.ticks) {
-    el("text", { x: X(t), y: h - m.b + 16, "text-anchor": "middle" }, svg).textContent = (x.fmt || String)(t);
-  }
-  el("line", { x1: m.l, x2: w - m.r, y1: h - m.b, y2: h - m.b, class: "axis" }, svg);
-  if (xlabel) el("text", { x: (m.l + w - m.r) / 2, y: h - 6, "text-anchor": "middle" }, svg).textContent = xlabel;
-  if (ylabel) el("text", { x: 12, y: (m.t + h - m.b) / 2, "text-anchor": "middle",
-                           transform: `rotate(-90 12 ${(m.t + h - m.b) / 2})` }, svg).textContent = ylabel;
-  host.replaceChildren(svg);
-  return { svg, X, Y, m, w, h };
+function example(which) {
+  document.getElementById("ex-text").textContent = DATA.examples[which].text;
+  document.getElementById("ex-gold").textContent = JSON.stringify(DATA.examples[which].gold, null, 1);
 }
 
-const line = (f, xs, ys, cls) =>
-  el("path", { d: xs.map((v, i) => `${i ? "L" : "M"}${f.X(v).toFixed(1)},${f.Y(ys[i]).toFixed(1)}`).join(""),
-               class: `line ${cls}` }, f.svg);
-const label = (f, x, y, text, anchor = "start", cls = "") =>
-  Object.assign(el("text", { x, y, "text-anchor": anchor, class: cls }, f.svg), { textContent: text });
-const ticks = (lo, hi, step) => Array.from({ length: Math.round((hi - lo) / step) + 1 }, (_, i) => +(lo + i * step).toFixed(6));
+function exactTable() {
+  const g = groups();
+  const rows = [["Exact match, seen", "seen", "exact_match"], ["Exact match, unseen", "unseen", "exact_match"],
+                ["Valid JSON, seen", "seen", "valid"], ["Valid JSON, unseen", "unseen", "valid"]];
+  document.getElementById("em-table").innerHTML =
+    `<thead><tr><th></th>${NAMES.map(n => `<th>${n}</th>`).join("")}<th>SFT base model</th></tr></thead><tbody>` +
+    rows.map(([label, grp, key]) => `<tr><td>${label}</td>${NAMES.map(n => cell(g[n][grp][key], pct)).join("")}` +
+      cell(DATA.sft.base[grp][key], pct) + "</tr>").join("") + "</tbody>";
+  document.getElementById("em-claim").textContent =
+    `On unseen layouts, exact match is ${pct(g.Rules.unseen.exact_match)} for rules, ${pct(g.Tagger.unseen.exact_match)} ` +
+    `for the tagger, ${pct(g.SFT.unseen.exact_match)} for SFT and ${pct(g.LLM.unseen.exact_match)} for the LLM. ` +
+    `Before fine-tuning, the small model wrote valid JSON for ${pct(DATA.sft.base.seen.valid)} of seen documents; after, ${pct(g.SFT.seen.valid)}.`;
+}
+
+function f1Table(grp) {
+  const g = groups();
+  document.getElementById("f1-table").innerHTML =
+    `<thead><tr><th>Field</th>${NAMES.map(n => `<th>${n}</th>`).join("")}</tr></thead><tbody>` +
+    FIELDS.map(f => `<tr><td><code>${f}</code></td>${NAMES.map(n => cell(g[n][grp].f1[f])).join("")}</tr>`).join("") +
+    "</tbody>";
+}
+
+function advTable() {
+  const cats = DATA.adversarial.categories;
+  const names = NAMES.filter(n => ADV_KEY[n] in Object.values(cats)[0].scores);
+  document.getElementById("adv-table").innerHTML =
+    `<thead><tr><th>Category</th><th>Field</th>${names.map(n => `<th>${n}</th>`).join("")}</tr></thead><tbody>` +
+    Object.entries(cats).map(([name, c]) => `<tr><td><b>${name.replace("_", " ")}</b><br><span style="color:var(--muted)">${c.what}</span></td>` +
+      `<td><code>${c.field}</code></td>` + names.map(n => {
+        const s = c.scores[ADV_KEY[n]];
+        return `<td class="cell" style="${tint(s.field)}">${pct(s.field)} / ${pct(s.whole)}</td>`;
+      }).join("") + "</tr>").join("") + `</tbody><caption style="caption-side:bottom;text-align:left;padding-top:8px;color:var(--muted)">${DATA.adversarial.n} documents per category.</caption>`;
+}
+
+function costTable() {
+  const g = groups();
+  const adv = DATA.adversarial.categories;
+  const advMean = n => ADV_KEY[n] in Object.values(adv)[0].scores
+    ? Object.values(adv).reduce((a, c) => a + c.scores[ADV_KEY[n]].whole, 0) / Object.keys(adv).length : null;
+  const secs = { Rules: g.Rules.unseen.seconds_per_doc, Tagger: g.Tagger.unseen.seconds_per_doc,
+                 SFT: g.SFT.unseen.seconds_per_doc, LLM: DATA.adversarial.llm_latency && DATA.adversarial.llm_latency.median_seconds };
+  const dollars = { Rules: 0, Tagger: 0, SFT: 0, LLM: DATA.llm.dollars_per_doc * 1000 };
+  const fmtS = v => v == null ? "not recorded" : v < 0.01 ? v.toFixed(4) : v.toFixed(2);
+  document.getElementById("cost-table").innerHTML =
+    `<thead><tr><th>Extractor</th><th>API $ per 1k docs</th><th>Seconds per doc</th><th>Exact match, unseen</th><th>Adversarial, all fields right</th></tr></thead><tbody>` +
+    NAMES.map(n => `<tr><td><b>${n}</b></td><td class="cell">${dollars[n].toFixed(2)}</td><td class="cell">${fmtS(secs[n])}</td>` +
+      cell(g[n].unseen.exact_match, pct) + (advMean(n) == null ? "<td>–</td>" : cell(advMean(n), pct)) + "</tr>").join("") + "</tbody>";
+}
+
+function judgeTable() {
+  document.getElementById("judge-table").innerHTML =
+    `<thead><tr><th>Predictions judged</th><th>Fields</th><th>Share right</th><th>TPR</th><th>TNR</th><th>kappa</th></tr></thead><tbody>` +
+    DATA.judge.rows.map(r => `<tr><td>${r.predictions}</td><td class="cell">${r.pairs}</td><td class="cell">${pct(r.right)}</td>` +
+      cell(r.tpr) + cell(r.tnr) + cell(r.kappa) + "</tr>").join("") + "</tbody>";
+}
+
+function toggle(attr, render) {
+  const buttons = document.querySelectorAll(`[data-${attr}]`);
+  buttons.forEach(b => b.addEventListener("click", () => {
+    buttons.forEach(o => o.setAttribute("aria-pressed", String(o === b)));
+    render(b.dataset[attr]);
+  }));
+}
 
 if (!DATA) {
   document.querySelector("main").insertAdjacentHTML("beforeend",
     "<p>No chart data. Run <code>uv run python scripts/build_views.py</code> and open <code>docs/views/index.html</code>.</p>");
+} else {
+  example("seen"); exactTable(); f1Table("unseen"); advTable(); costTable(); judgeTable();
+  toggle("ex", example); toggle("f1", f1Table);
 }
 </script>

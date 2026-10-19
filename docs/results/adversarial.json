@@ -1,0 +1,119 @@
+{
+ "n": 40,
+ "categories": {
+  "revised_count": {
+   "field": "guest_count",
+   "what": "a later line revises the headcount; the revised number is right",
+   "scores": {
+    "rules": {
+     "field": 0.0,
+     "whole": 0.0
+    },
+    "tagger": {
+     "field": 0.0,
+     "whole": 0.0
+    },
+    "SFT": {
+     "field": 0.15,
+     "whole": 0.1
+    },
+    "LLM": {
+     "field": 1.0,
+     "whole": 1.0
+    }
+   }
+  },
+  "decoy_amount": {
+   "field": "deposit_amount",
+   "what": "a refundable damage deposit is mentioned before the booking deposit",
+   "scores": {
+    "rules": {
+     "field": 0.0,
+     "whole": 0.0
+    },
+    "tagger": {
+     "field": 0.0,
+     "whole": 0.0
+    },
+    "SFT": {
+     "field": 0.025,
+     "whole": 0.025
+    },
+    "LLM": {
+     "field": 1.0,
+     "whole": 1.0
+    }
+   }
+  },
+  "numeric_date": {
+   "field": "event_date",
+   "what": "the event date is written as dd/mm/yyyy, and the text says so",
+   "scores": {
+    "rules": {
+     "field": 0.0,
+     "whole": 0.0
+    },
+    "tagger": {
+     "field": 0.0,
+     "whole": 0.0
+    },
+    "SFT": {
+     "field": 0.575,
+     "whole": 0.525
+    },
+    "LLM": {
+     "field": 1.0,
+     "whole": 1.0
+    }
+   }
+  },
+  "negated_caterer": {
+   "field": "caterer_name",
+   "what": "a caterer is named but not booked; the right value is null",
+   "scores": {
+    "rules": {
+     "field": 0.425,
+     "whole": 0.425
+    },
+    "tagger": {
+     "field": 0.1,
+     "whole": 0.1
+    },
+    "SFT": {
+     "field": 0.125,
+     "whole": 0.125
+    },
+    "LLM": {
+     "field": 1.0,
+     "whole": 1.0
+    }
+   }
+  },
+  "yearless_due": {
+   "field": "balance_due",
+   "what": "the balance due date has a weekday but no year; the year follows from context",
+   "scores": {
+    "rules": {
+     "field": 0.0,
+     "whole": 0.0
+    },
+    "tagger": {
+     "field": 0.0,
+     "whole": 0.0
+    },
+    "SFT": {
+     "field": 0.725,
+     "whole": 0.7
+    },
+    "LLM": {
+     "field": 1.0,
+     "whole": 1.0
+    }
+   }
+  }
+ },
+ "llm_latency": {
+  "median_seconds": 1.6956203960580751,
+  "calls": 40
+ }
+}
