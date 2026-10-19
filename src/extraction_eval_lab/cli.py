@@ -1,10 +1,12 @@
 """The `eel` command: run the experiments and print the results."""
 
 import argparse
+import os
 
 from extraction_eval_lab.data.generator import BookingRecipe
 from extraction_eval_lab.data.schema import FIELDS
 from extraction_eval_lab.evaluation.scorer import FieldReport
+from extraction_eval_lab.extractors.llm import LLMExtractor, Meter, estimate
 from extraction_eval_lab.extractors.rules import extract
 from extraction_eval_lab.extractors.sft import SFTExtractor, SFTTraining
 from extraction_eval_lab.extractors.tagger import Tagger, TaggerTraining
@@ -70,6 +72,30 @@ def _sft(args: argparse.Namespace) -> None:
         print(f"  {label:<18} {values[0]:>10.3f} {values[1]:>12.3f} {values[2]:>9.3f} {values[3]:>11.3f}")
 
 
+def _llm(args: argparse.Namespace) -> None:
+    tests = {layouts: BookingRecipe(n=args.n, seed=3, layouts=layouts).sample() for layouts in ["seen", "unseen"]}
+    meter = Meter(input_price=args.input_price, output_price=args.output_price, cap=args.cap)
+    texts = [d.text for docs in tests.values() for d in docs]
+    print(f"{args.model} on {len(texts)} documents: estimated at most ${estimate(texts, meter, 400):.2f} before "
+          f"caching; cap ${args.cap:.2f}")
+    if args.dry_run:
+        return
+    if not os.environ.get("ANTHROPIC_API_KEY"):
+        raise SystemExit("set ANTHROPIC_API_KEY to run; --dry-run prints the estimate only")
+    import anthropic
+
+    extractor = LLMExtractor(client=anthropic.Anthropic(), model=args.model, meter=meter, repairs=args.repairs)
+    reports = {layouts: FieldReport.from_pairs([extractor.extract(d.text) for d in docs], [d.gold for d in docs])
+               for layouts, docs in tests.items()}
+    print(f"per-field F1 on {args.n} test documents per layout group; {extractor.calls} API calls, "
+          f"{extractor.repaired} documents repaired, ${meter.spent:.2f} spent")
+    print(f"  {'field':<18} {'seen':>6} {'unseen':>7}")
+    for name in FIELDS:
+        _report_row(name, reports)
+    for label, attr in [("exact match", "exact_match"), ("valid JSON", "valid")]:
+        print(f"  {label:<18} {getattr(reports['seen'], attr):>6.3f} {getattr(reports['unseen'], attr):>7.3f}")
+
+
 def main(argv: list[str] | None = None) -> None:
     parser = argparse.ArgumentParser(prog="eel", description=__doc__)
     commands = parser.add_subparsers(dest="command", required=True)
@@ -96,5 +122,15 @@ def main(argv: list[str] | None = None) -> None:
     sft.add_argument("--epochs", type=int, default=2)
     sft.add_argument("--n", type=int, default=100, help="test documents per layout group")
     sft.set_defaults(run=_sft)
+
+    llm = commands.add_parser("llm", help="extract with an Anthropic model: estimate first, then a capped run")
+    llm.add_argument("--model", default="claude-haiku-4-5-20251001")
+    llm.add_argument("--n", type=int, default=100, help="test documents per layout group")
+    llm.add_argument("--repairs", type=int, default=1)
+    llm.add_argument("--cap", type=float, default=10.0, help="hard spending cap in dollars")
+    llm.add_argument("--input-price", type=float, default=1.0, help="dollars per million input tokens")
+    llm.add_argument("--output-price", type=float, default=5.0, help="dollars per million output tokens")
+    llm.add_argument("--dry-run", action="store_true", help="print the cost estimate and stop")
+    llm.set_defaults(run=_llm)
     args = parser.parse_args(argv)
     args.run(args)
