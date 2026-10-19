@@ -1,0 +1,25 @@
+[project]
+name = "extraction-eval-lab"
+version = "0.1.0"
+description = "Structured extraction from fictional documents into a strict JSON schema: an LLM, a token tagger and a small fine-tuned model, scored per field."
+readme = "README.md"
+authors = [{ name = "Bhavya Sharma" }]
+requires-python = ">=3.12"
+dependencies = [
+    "numpy>=2.5.4",
+    "metrics-from-scratch @ git+https://github.com/bhavya94/metrics-from-scratch",
+    "pydantic>=2",
+    "email-validator>=2",
+]
+
+[project.scripts]
+eel = "extraction_eval_lab.cli:main"
+
+[build-system]
+requires = ["uv_build>=0.12.23,<0.13.0"]
+build-backend = "uv_build"
+
+[dependency-groups]
+dev = [
+    "pytest>=9.1.1",
+]
