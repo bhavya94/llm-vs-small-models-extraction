@@ -224,7 +224,7 @@ requires-dist = [
     { name = "accelerate", specifier = ">=1.1.0" },
     { name = "anthropic", specifier = ">=1.15.0" },
     { name = "email-validator", specifier = ">=2" },
-    { name = "metrics-from-scratch", git = "https://github.com/bhavya94/metrics-from-scratch" },
+    { name = "metrics-from-scratch", git = "https://github.com/bhavya94/metrics-from-scratch?rev=9b14c54c93a574a1b5596b4bd98bd59854ef5bd0" },
     { name = "numpy", specifier = ">=2.5.4" },
     { name = "peft", specifier = ">=0.13" },
     { name = "pydantic", specifier = ">=2" },
@@ -607,7 +607,7 @@ wheels = [
 [[package]]
 name = "metrics-from-scratch"
 version = "0.1.0"
-source = { git = "https://github.com/bhavya94/metrics-from-scratch#9b14c54c93a574a1b5596b4bd98bd59854ef5bd0" }
+source = { git = "https://github.com/bhavya94/metrics-from-scratch?rev=9b14c54c93a574a1b5596b4bd98bd59854ef5bd0#9b14c54c93a574a1b5596b4bd98bd59854ef5bd0" }
 dependencies = [
     { name = "numpy" },
     { name = "scipy" },

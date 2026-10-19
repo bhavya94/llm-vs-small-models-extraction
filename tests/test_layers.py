@@ -6,8 +6,9 @@ from pathlib import Path
 SRC = Path(__file__).resolve().parents[1] / "src" / "extraction_eval_lab"
 BELOW = {
     "data": set(),
-    "extractors": {"data"},
-    "evaluation": {"data"},
+    "llm": set(),
+    "extractors": {"data", "llm"},
+    "evaluation": {"data", "llm"},
 }
 
 
