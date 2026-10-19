@@ -1,0 +1,135 @@
+<meta charset="utf-8">
+<title>Extraction Eval Lab</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;650&family=Source+Sans+3:wght@400;600&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: one reading column; each metric is a numbered PR section with a claim, a chart, and the command that reproduces it. */
+:root {
+  --bg: #f4f6f8; --surface: #ffffff; --fg: #17202b; --muted: #5a6573; --rule: #d6dce3; --grid: #e8ecf0;
+  --accent: #1f5fbf; --s0: #0072b2; --s1: #d55e00; --s2: #009e73; --s3: #cc79a7; --bad: #b4232f; --good: #1a7f4b;
+  --display: "Archivo", "Helvetica Neue", Arial, sans-serif;
+  --body: "Source Sans 3", "Segoe UI", system-ui, sans-serif;
+  --mono: "JetBrains Mono", ui-monospace, Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #0f141a; --surface: #161d25; --fg: #e6ebf1; --muted: #9aa6b4; --rule: #2b3541; --grid: #1f2832;
+  --accent: #79aaf5; --s0: #56b4e9; --s1: #f0884a; --s2: #3cc39a; --s3: #e09ac3; --bad: #f07178; --good: #5fd39a;
+  color-scheme: dark; } }
+:root[data-theme="dark"] {
+  --bg: #0f141a; --surface: #161d25; --fg: #e6ebf1; --muted: #9aa6b4; --rule: #2b3541; --grid: #1f2832;
+  --accent: #79aaf5; --s0: #56b4e9; --s1: #f0884a; --s2: #3cc39a; --s3: #e09ac3; --bad: #f07178; --good: #5fd39a;
+  color-scheme: dark; }
+
+body { background: var(--bg); color: var(--fg); font: 16px/1.55 var(--body); margin: 0; padding-inline: 16px; padding-block: 32px 64px; }
+main { max-width: 920px; margin: 0 auto; display: grid; gap: 28px; }
+header { display: grid; gap: 8px; }
+h1, h2 { font-family: var(--display); font-weight: 650; text-wrap: balance; margin: 0; letter-spacing: -0.01em; }
+h1 { font-size: clamp(28px, 5vw, 40px); line-height: 1.1; }
+h2 { font-size: clamp(20px, 3vw, 24px); line-height: 1.2; }
+p { margin: 0; max-width: 68ch; }
+.lede { color: var(--muted); font-size: 17px; }
+.eyebrow { font: 600 12px/1 var(--mono); letter-spacing: 0.08em; text-transform: uppercase; color: var(--accent); }
+section { background: var(--surface); border: 1px solid var(--rule); border-radius: 6px; padding: 24px; display: grid; gap: 14px; min-width: 0; }
+code, .mono { font-family: var(--mono); font-size: 13px; }
+.cmd { color: var(--muted); font-family: var(--mono); font-size: 13px; overflow-x: auto; white-space: nowrap; border-top: 1px solid var(--grid); padding-top: 12px; }
+.cmd::before { content: "$ "; color: var(--accent); }
+.row { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 20px; align-items: start; }
+.row > * { min-width: 0; }
+.panel-title { font: 600 13px/1.3 var(--body); color: var(--muted); margin-bottom: 4px; }
+svg { display: block; width: 100%; height: auto; overflow: visible; }
+svg text { fill: var(--muted); font: 11px var(--mono); }
+svg .axis { stroke: var(--rule); } svg .gridline { stroke: var(--grid); }
+svg .ref { stroke: var(--muted); stroke-dasharray: 4 4; fill: none; }
+.s0 { stroke: var(--s0); fill: var(--s0); } .s1 { stroke: var(--s1); fill: var(--s1); }
+.s2 { stroke: var(--s2); fill: var(--s2); } .s3 { stroke: var(--s3); fill: var(--s3); }
+.muted-fill { fill: var(--muted); }
+.key { font-weight: 600; } .s0-text { color: var(--s0); } .s1-text { color: var(--s1); } .s2-text { color: var(--s2); } path.line { fill: none; stroke-width: 2; }
+table { border-collapse: collapse; font-variant-numeric: tabular-nums; }
+.legend { width: 100%; font-size: 14px; }
+.legend th, .legend td { padding: 4px 10px 4px 0; text-align: right; border-bottom: 1px solid var(--grid); }
+.legend th:first-child, .legend td:first-child { text-align: left; }
+.legend th { font-weight: 600; color: var(--muted); font-size: 13px; }
+.swatch { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 6px; vertical-align: baseline; }
+.scroll { overflow-x: auto; }
+
+.control { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; }
+.control label { font-weight: 600; }
+.control output { font: 600 15px var(--mono); min-width: 3.5em; }
+input[type=range] { flex: 1 1 220px; accent-color: var(--accent); }
+input[type=range]:focus-visible { outline: 2px solid var(--accent); outline-offset: 4px; }
+.matrix { font-family: var(--mono); font-size: 14px; }
+.matrix th { font: 600 12px var(--body); color: var(--muted); padding: 6px 8px; text-align: center; }
+.matrix th.side { text-align: right; }
+.matrix td { width: 104px; height: 64px; text-align: center; border: 1px solid var(--rule); }
+.matrix td b { display: block; font-size: 20px; }
+.matrix td span { font-size: 11px; color: var(--muted); }
+.matrix td.miss { color: var(--bad); }
+.bars { display: grid; gap: 8px; }
+.bar { display: grid; grid-template-columns: 84px 1fr 56px; gap: 10px; align-items: center; font-size: 14px; }
+.bar .track { height: 10px; background: var(--grid); border-radius: 2px; overflow: hidden; }
+.bar .fill { height: 100%; background: var(--accent); }
+.bar .val { font-family: var(--mono); font-size: 13px; text-align: right; }
+.stats { display: flex; flex-wrap: wrap; gap: 12px 32px; }
+.stat { display: grid; gap: 2px; }
+.stat .k { font-size: 13px; color: var(--muted); }
+.stat .v { font: 600 18px var(--mono); }
+.stat .v small { font-weight: 400; color: var(--muted); font-size: 13px; }
+@media (max-width: 480px) { section { padding: 16px; } .matrix td { width: 76px; } }
+</style>
+
+<main>
+  <header>
+    <div class="eyebrow">extraction-eval-lab</div>
+    <h1>Extraction Eval Lab</h1>
+    <p class="lede">Structured extraction from fictional documents into a strict JSON schema: an LLM, a token tagger and a small fine-tuned model, scored per field.</p>
+  </header>
+</main>
+
+<script>
+const DATA = /*VIEW_DATA*/null;
+const NS = "http://www.w3.org/2000/svg";
+const pct = v => (v * 100).toFixed(v < 0.1 && v > 0 ? 1 : 0) + "%";
+const f2 = v => v.toFixed(2), f3 = v => v.toFixed(3), f4 = v => v.toFixed(4);
+
+function el(tag, attrs = {}, parent) {
+  const node = document.createElementNS(NS, tag);
+  for (const [k, v] of Object.entries(attrs)) node.setAttribute(k, v);
+  if (parent) parent.appendChild(node);
+  return node;
+}
+
+// A chart frame: linear scales, gridlines, ticks and axis labels. Marks go in `plot` through x() and y().
+function frame(host, { w = 440, h = 260, x, y, xlabel, ylabel }) {
+  const m = { l: 48, r: 14, t: 10, b: xlabel ? 42 : 26 };
+  const svg = el("svg", { viewBox: `0 0 ${w} ${h}`, role: "img" });
+  const X = v => m.l + (v - x.min) / (x.max - x.min) * (w - m.l - m.r);
+  const Y = v => h - m.b - (v - y.min) / (y.max - y.min) * (h - m.t - m.b);
+  for (const t of y.ticks) {
+    el("line", { x1: m.l, x2: w - m.r, y1: Y(t), y2: Y(t), class: "gridline" }, svg);
+    el("text", { x: m.l - 6, y: Y(t) + 4, "text-anchor": "end" }, svg).textContent = (y.fmt || String)(t);
+  }
+  for (const t of x.ticks) {
+    el("text", { x: X(t), y: h - m.b + 16, "text-anchor": "middle" }, svg).textContent = (x.fmt || String)(t);
+  }
+  el("line", { x1: m.l, x2: w - m.r, y1: h - m.b, y2: h - m.b, class: "axis" }, svg);
+  if (xlabel) el("text", { x: (m.l + w - m.r) / 2, y: h - 6, "text-anchor": "middle" }, svg).textContent = xlabel;
+  if (ylabel) el("text", { x: 12, y: (m.t + h - m.b) / 2, "text-anchor": "middle",
+                           transform: `rotate(-90 12 ${(m.t + h - m.b) / 2})` }, svg).textContent = ylabel;
+  host.replaceChildren(svg);
+  return { svg, X, Y, m, w, h };
+}
+
+const line = (f, xs, ys, cls) =>
+  el("path", { d: xs.map((v, i) => `${i ? "L" : "M"}${f.X(v).toFixed(1)},${f.Y(ys[i]).toFixed(1)}`).join(""),
+               class: `line ${cls}` }, f.svg);
+const label = (f, x, y, text, anchor = "start", cls = "") =>
+  Object.assign(el("text", { x, y, "text-anchor": anchor, class: cls }, f.svg), { textContent: text });
+const ticks = (lo, hi, step) => Array.from({ length: Math.round((hi - lo) / step) + 1 }, (_, i) => +(lo + i * step).toFixed(6));
+
+if (!DATA) {
+  document.querySelector("main").insertAdjacentHTML("beforeend",
+    "<p>No chart data. Run <code>uv run python scripts/build_views.py</code> and open <code>docs/views/index.html</code>.</p>");
+}
+</script>
