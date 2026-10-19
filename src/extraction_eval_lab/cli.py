@@ -6,6 +6,7 @@ from extraction_eval_lab.data.generator import BookingRecipe
 from extraction_eval_lab.data.schema import FIELDS
 from extraction_eval_lab.evaluation.scorer import FieldReport
 from extraction_eval_lab.extractors.rules import extract
+from extraction_eval_lab.extractors.sft import SFTExtractor, SFTTraining
 from extraction_eval_lab.extractors.tagger import Tagger, TaggerTraining
 
 
@@ -49,6 +50,26 @@ def _tagger(args: argparse.Namespace) -> None:
         print(f"  {label:<18} {getattr(reports['seen'], attr):>6.3f} {getattr(reports['unseen'], attr):>7.3f}")
 
 
+def _sft(args: argparse.Namespace) -> None:
+    train = BookingRecipe(n=args.train, seed=1, layouts="seen").sample()
+    adapter = SFTTraining(epochs=args.epochs).run(train)
+    tests = {layouts: BookingRecipe(n=args.n, seed=3, layouts=layouts).sample() for layouts in ["seen", "unseen"]}
+    reports = {}
+    for label, extractor in [("base", SFTExtractor()), ("tuned", SFTExtractor(adapter=adapter))]:
+        reports[label] = {layouts: FieldReport.from_pairs([extractor.extract(d.text) for d in docs],
+                                                          [d.gold for d in docs])
+                          for layouts, docs in tests.items()}
+    print(f"SmolLM2-135M-Instruct, base vs LoRA SFT on {args.train} seen-layout documents for {args.epochs} epochs; "
+          f"per-field F1 on {args.n} test documents per layout group")
+    print(f"  {'field':<18} {'base seen':>10} {'base unseen':>12} {'SFT seen':>9} {'SFT unseen':>11}")
+    for name in FIELDS:
+        values = [reports[m][g].fields[name].f1 for m in ("base", "tuned") for g in ("seen", "unseen")]
+        print(f"  {name:<18} {values[0]:>10.3f} {values[1]:>12.3f} {values[2]:>9.3f} {values[3]:>11.3f}")
+    for label, attr in [("exact match", "exact_match"), ("valid JSON", "valid")]:
+        values = [getattr(reports[m][g], attr) for m in ("base", "tuned") for g in ("seen", "unseen")]
+        print(f"  {label:<18} {values[0]:>10.3f} {values[1]:>12.3f} {values[2]:>9.3f} {values[3]:>11.3f}")
+
+
 def main(argv: list[str] | None = None) -> None:
     parser = argparse.ArgumentParser(prog="eel", description=__doc__)
     commands = parser.add_subparsers(dest="command", required=True)
@@ -69,5 +90,11 @@ def main(argv: list[str] | None = None) -> None:
     tagger.add_argument("--epochs", type=int, default=3)
     tagger.add_argument("--n", type=int, default=100, help="test documents per layout group")
     tagger.set_defaults(run=_tagger)
+
+    sft = commands.add_parser("sft", help="LoRA fine-tune SmolLM2-135M (once); score base and tuned on both groups")
+    sft.add_argument("--train", type=int, default=600, help="seen-layout training documents")
+    sft.add_argument("--epochs", type=int, default=2)
+    sft.add_argument("--n", type=int, default=100, help="test documents per layout group")
+    sft.set_defaults(run=_sft)
     args = parser.parse_args(argv)
     args.run(args)
